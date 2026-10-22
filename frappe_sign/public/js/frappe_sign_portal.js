@@ -74,7 +74,7 @@ class FrappeSignPortal {
                     </div>
 
                     <p>
-                        ${__("Before signing, you must consent to using your saved signature and initials for electronic signing in Frappe Sign.")}
+                        ${__("Before signing, please confirm that you agree to sign this document electronically and that your electronic signature is legally binding.")}
                     </p>
 
                     <div class="frappe-sign-modal-footer">
@@ -101,7 +101,7 @@ class FrappeSignPortal {
                             ${__("Draw")}
                         </button>
                         <button type="button" class="btn btn-default btn-sm" data-mode="upload">
-                            ${__("Upload PNG")}
+                            ${__("Upload image")}
                         </button>
                         <button type="button" class="btn btn-default btn-sm" data-mode="type">
                             ${__("Type")}
@@ -119,7 +119,7 @@ class FrappeSignPortal {
                             <canvas class="frappe-sign-draw-canvas" id="frappe-sign-setup-canvas"></canvas>
 
                             <p class="frappe-sign-draw-pad-note">
-                                ${__("The saved image will be stored as a transparent PNG.")}
+                                ${__("Sign with your finger or mouse, then tap Save.")}
                             </p>
                         </div>
                     </div>
@@ -190,6 +190,14 @@ class FrappeSignPortal {
     async render_pdf() {
         const container = $("#frappe-sign-pdf-container");
         container.empty();
+
+        // On a phone the pages are small; let people open the PDF full size to zoom.
+        const pdf_url = `/api/method/frappe_sign.api.signing.get_source_pdf?token=${encodeURIComponent(this.token)}`;
+        container.append(`
+            <a class="btn btn-default btn-sm frappe-sign-open-pdf" href="${pdf_url}" target="_blank" rel="noopener">
+                ${__("Open the full document to zoom")}
+            </a>
+        `);
 
         for (let page_number = 1; page_number <= this.pdf_doc.numPages; page_number++) {
             await this.render_page(page_number, container);
@@ -670,6 +678,8 @@ class FrappeSignPortal {
         const room = (this.canvas.parentElement && this.canvas.parentElement.clientWidth) || window.innerWidth - 48;
         const css_width = Math.max(240, Math.min(720, room));
         const css_height = Math.round(css_width * 0.38);
+        this.css_width = css_width;
+        this.css_height = css_height;
         this.canvas.style.touchAction = "none";
         this.canvas.style.maxWidth = "100%";
 
@@ -705,9 +715,14 @@ class FrappeSignPortal {
             ? event.touches[0]
             : event;
 
+        // The pad can be drawn smaller than its drawing size (CSS fits it to the
+        // screen); scale the touch point so strokes land under the finger.
+        const sx = this.css_width ? this.css_width / rect.width : 1;
+        const sy = this.css_height ? this.css_height / rect.height : 1;
+
         return {
-            x: source.clientX - rect.left,
-            y: source.clientY - rect.top,
+            x: (source.clientX - rect.left) * sx,
+            y: (source.clientY - rect.top) * sy,
         };
     }
 
