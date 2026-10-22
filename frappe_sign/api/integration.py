@@ -175,6 +175,9 @@ def add_signers_to_request(request, signers, signing_mode):
 				"status": "Pending",
 			},
 		)
+		# Frappe 15 names child rows only on save; fields link to the row by name.
+		if not row.name:
+			row.name = frappe.generate_hash(length=10)
 
 		keys = get_signer_reference_keys(signer_payload, profile.name)
 

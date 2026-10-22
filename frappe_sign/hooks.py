@@ -9,7 +9,7 @@ add_to_apps_screen = [
         "name": "frappe_sign",
         "logo": "/assets/frappe_sign/desktop_icons/frappe_sign_icon.png",
         "title": "Frappe Sign",
-        "route": "/desk/frappe-sign-sign",
+        "route": "/app/frappe-sign-sign",  # Frappe 15 desk route (v16: /desk/...)
         "has_permission": "frappe_sign.permissions.has_app_permission",
     }
 ]
