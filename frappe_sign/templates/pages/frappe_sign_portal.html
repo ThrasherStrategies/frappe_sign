@@ -1,75 +1,131 @@
 {% extends "templates/web.html" %}
 
-{% block page_content %}
+{%- block navbar -%}{%- endblock -%}
+{%- block footer -%}{%- endblock -%}
 
-<div class="frappe-sign frappe-sign-portal">
+{% block page_content %}
+<div class="fs">
+    <header class="fs-top">
+        <div class="fs-brand">{{ brand_html or "Document signing" }}</div>
+    </header>
+
     {% if invalid_token %}
-        <div class="frappe-sign-message frappe-sign-message-error">
-            <h2>Invalid signing link</h2>
-            <p>This signing link is invalid, expired, or has already been used.</p>
+        <div class="fs-card fs-msg">
+            <h1>This link isn't valid</h1>
+            <p>It may have expired or already been used. Please contact the person who sent it for a new link.</p>
         </div>
     {% elif closed %}
-        <div class="frappe-sign-message">
-            <h2>Signing request closed</h2>
-            <p>This signing request is currently marked as {{ request_status }}.</p>
+        <div class="fs-card fs-msg">
+            <h1>{{ "Already signed" if request_status == "Completed" else "This document is no longer available" }}</h1>
+            <p>{{ "Thank you. This document has been signed." if request_status == "Completed" else "Its status is " ~ request_status ~ ". Please contact the person who sent it." }}</p>
         </div>
     {% else %}
-        <div class="frappe-sign-header">
-            <h1>{{ request_title }}</h1>
-            <p>Please review the document and complete the required signing fields.</p>
-        </div>
-
-        <div class="frappe-sign-electronic-signature-notice">
-            <h2>Electronic Signature Notice</h2>
-
-            <p>
-                This document is being signed electronically using an ordinary electronic signature.
-            </p>
-
-            <p>
-                By signing, you confirm that you have reviewed the document and that your electronic
-                signature, initials, typed name, checkbox selection, or other signing action on this
-                page is intended to be your signature for this document.
-            </p>
-
-            <p>
-                If you do not agree to sign electronically, or if you believe that an advanced
-                electronic signature is legally required for this document, you may decline to sign.
-            </p>
-        </div>
-
-        <div
-            id="frappe-sign-root"
-            class="frappe-sign-root"
-            data-token="{{ token }}"
-            data-request="{{ request_name }}"
-            data-electronic-signature-notice-version="ZA-ECTA-ORDINARY-ESIGN-v1"
-        >
-            <div class="frappe-sign-toolbar">
-                <button class="btn btn-default" id="frappe-sign-go-next">
-                    Go To Next Field
-                </button>
-
-                <button class="btn btn-default" id="frappe-sign-sign-all">
-                    Sign All
-                </button>
-
-                <button class="btn btn-primary" id="frappe-sign-complete">
-                    Complete Signing
-                </button>
-
-                <button class="btn btn-default" id="frappe-sign-decline">
-                    Decline
-                </button>
+        <div id="fs-root" data-token="{{ token }}">
+            <div class="fs-intro">
+                <h1>{{ request_title }}</h1>
+                <p>Please read the agreement below, then sign at the bottom.</p>
             </div>
 
-            <div id="frappe-sign-pdf-container" class="frappe-sign-pdf-container">
-                <p>Loading document...</p>
+            <div class="fs-doc-bar">
+                <span id="fs-pages">Loading the agreement…</span>
+                <a id="fs-open" class="fs-link" target="_blank" rel="noopener">Open full PDF</a>
             </div>
+            <div id="fs-doc" class="fs-doc"></div>
+
+            <section id="fs-sign" class="fs-card fs-sign">
+                <h2>Sign the agreement</h2>
+
+                <label class="fs-label" for="fs-name">Full legal name</label>
+                <input id="fs-name" class="fs-input" autocomplete="name">
+
+                <div class="fs-label">Signature</div>
+                <div class="fs-tabs" role="tablist">
+                    <button type="button" class="fs-tab active" data-mode="type">Type</button>
+                    <button type="button" class="fs-tab" data-mode="draw">Draw</button>
+                </div>
+                <div id="fs-typed" class="fs-pad fs-typed"></div>
+                <div id="fs-drawbox" class="fs-pad fs-drawbox" hidden>
+                    <canvas id="fs-canvas"></canvas>
+                    <div class="fs-pad-hint">Sign here with your finger or mouse</div>
+                    <button type="button" id="fs-clear" class="fs-link fs-clear">Clear</button>
+                </div>
+
+                <div class="fs-row">
+                    <span class="fs-label">Date</span>
+                    <span id="fs-date"></span>
+                </div>
+
+                <label class="fs-agree">
+                    <input type="checkbox" id="fs-agree">
+                    <span>I have read this agreement, I agree to its terms, and I agree to sign it electronically. My electronic signature is legally binding.</span>
+                </label>
+
+                <div id="fs-error" class="fs-error" hidden></div>
+                <button type="button" id="fs-submit" class="fs-btn">Sign agreement</button>
+                <button type="button" id="fs-decline" class="fs-link fs-decline">I don't want to sign</button>
+            </section>
         </div>
+
+        <div id="fs-done" class="fs-card fs-msg" hidden>
+            <div class="fs-check">✓</div>
+            <h1>Signed. Thank you!</h1>
+            <p>Your signed agreement has been sent to Alternative to Meds Center. You can close this page.</p>
+        </div>
+
+        <button type="button" id="fs-jump" class="fs-jump">Sign now ↓</button>
     {% endif %}
 </div>
+{% endblock %}
 
+{% block style %}
+<style>
+@font-face { font-family: "FS Signature"; src: url("/assets/frappe_sign/fonts/GreatVibes-Regular.ttf") format("truetype"); font-display: swap; }
+body { background: #f4f2ee; }
+.fs { max-width: 860px; margin: 0 auto; padding: 0 14px 120px; color: #1f2328; font-size: 16px; }
+.fs-top { padding: 18px 2px 8px; }
+.fs-brand { font-weight: 600; letter-spacing: .2px; color: #5b4636; }
+.fs-intro h1 { font-size: 26px; line-height: 1.25; margin: 10px 0 6px; font-weight: 700; }
+.fs-intro p { color: #57606a; margin: 0 0 16px; }
+.fs-card { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 6px 24px rgba(0,0,0,.05); padding: 22px; }
+.fs-msg { margin-top: 40px; text-align: center; }
+.fs-msg h1 { font-size: 24px; margin: 6px 0 8px; }
+.fs-msg p { color: #57606a; }
+.fs-check { width: 56px; height: 56px; border-radius: 50%; background: #1f883d; color: #fff; font-size: 30px; line-height: 56px; margin: 0 auto 6px; }
+.fs-doc-bar { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #57606a; margin: 0 2px 8px; }
+.fs-doc { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+.fs-doc canvas { display: block; width: 100%; height: auto; background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.fs-sign h2 { font-size: 20px; margin: 0 0 16px; }
+.fs-label { display: block; font-size: 14px; font-weight: 600; color: #424a53; margin: 14px 0 6px; }
+.fs-input { width: 100%; font-size: 17px; padding: 12px 14px; border: 1px solid #d0d7de; border-radius: 10px; background: #fff; }
+.fs-input:focus { outline: 2px solid #5b4636; border-color: transparent; }
+.fs-tabs { display: inline-flex; background: #eef0f2; border-radius: 10px; padding: 3px; margin-bottom: 8px; }
+.fs-tab { border: 0; background: transparent; padding: 7px 18px; border-radius: 8px; font-size: 15px; color: #424a53; }
+.fs-tab.active { background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.12); color: #1f2328; font-weight: 600; }
+.fs-pad { position: relative; height: 150px; border: 1.5px dashed #c5cbd2; border-radius: 12px; background: #fcfcfb; }
+.fs-typed { display: flex; align-items: center; justify-content: center; font-family: "FS Signature", cursive; font-size: 54px; color: #111; overflow: hidden; white-space: nowrap; padding: 0 12px; }
+.fs-typed.empty { font-family: inherit; font-size: 15px; color: #8c959f; }
+.fs-drawbox canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.fs-pad-hint { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 13px; color: #8c959f; pointer-events: none; }
+.fs-clear { position: absolute; top: 8px; right: 12px; }
+.fs-row { display: flex; align-items: baseline; gap: 12px; margin-top: 4px; }
+.fs-row .fs-label { margin: 14px 0 0; }
+.fs-agree { display: flex; gap: 12px; align-items: flex-start; margin: 20px 0 16px; font-size: 15px; line-height: 1.45; color: #424a53; font-weight: 400; cursor: pointer; }
+.fs-agree input { width: 22px; height: 22px; margin-top: 1px; flex: none; accent-color: #5b4636; }
+.fs-btn { display: block; width: 100%; border: 0; border-radius: 12px; padding: 16px; font-size: 18px; font-weight: 600; color: #fff; background: #5b4636; }
+.fs-btn:disabled { opacity: .55; }
+.fs-link { background: none; border: 0; padding: 0; color: #5b4636; font-weight: 600; font-size: 14px; text-decoration: underline; cursor: pointer; }
+.fs-decline { display: block; margin: 16px auto 0; color: #6e7781; font-weight: 400; }
+.fs-error { background: #fff1f0; color: #a40e26; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 15px; }
+.fs-jump { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); border: 0; border-radius: 999px; padding: 13px 26px; font-size: 16px; font-weight: 600; color: #fff; background: #5b4636; box-shadow: 0 6px 20px rgba(0,0,0,.25); z-index: 50; }
+.fs-jump[hidden] { display: none; }
+@media (max-width: 600px) {
+    .fs { padding: 0 10px 110px; }
+    .fs-intro h1 { font-size: 22px; }
+    .fs-card { padding: 18px 16px; border-radius: 12px; }
+    .fs-doc { gap: 8px; }
+    .fs-typed { font-size: 44px; }
+}
+</style>
 {% endblock %}
 
 {% block script %}
@@ -79,9 +135,5 @@
         window.pdfjsLib.GlobalWorkerOptions.workerSrc = "/assets/frappe_sign/js/pdfjs/pdf.worker.min.js";
     }
 </script>
-<script src="/assets/frappe_sign/js/frappe_sign_portal.js"></script>
-{% endblock %}
-
-{% block style %}
-<link rel="stylesheet" href="/assets/frappe_sign/css/frappe_sign.css">
+<script src="/assets/frappe_sign/js/frappe_sign_simple.js"></script>
 {% endblock %}

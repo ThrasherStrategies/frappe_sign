@@ -291,7 +291,7 @@ def make_typed_signature_png(text, kind):
     image = Image.new("RGBA", (width, height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(image)
 
-    font = get_signature_font(72 if kind == "signature" else 64)
+    font = get_signature_font(96 if kind == "signature" else 72)
 
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
@@ -310,6 +310,7 @@ def make_typed_signature_png(text, kind):
 
 def get_signature_font(size):
     candidates = [
+        frappe.get_app_path("frappe_sign", "public", "fonts", "GreatVibes-Regular.ttf"),
         "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf",
@@ -544,7 +545,7 @@ def build_stamp_items(request, signer_row, profile, field_values):
             stamp_value = signer_row.email or profile.email
 
         elif field.field_type == "Date":
-            stamp_value = now_datetime().date().isoformat()
+            stamp_value = frappe.utils.formatdate(now_datetime().date(), "MMMM d, yyyy")
 
         elif field.field_type == "Signature":
             if profile.signature_image:
