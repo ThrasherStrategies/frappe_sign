@@ -151,6 +151,7 @@
             (context.fields || []).forEach((f) => (values[f.name] = { value: f.field_type === "Checkbox" ? "1" : name }));
             await api("complete_signing", { field_values: JSON.stringify(values) });
             root.hidden = true;
+            watcher.disconnect();
             $("fs-jump").hidden = true;
             $("fs-done").hidden = false;
             window.scrollTo({ top: 0, behavior: "smooth" });
@@ -167,6 +168,7 @@
         try {
             await api("decline_signing", { reason: reason || "No reason given" });
             root.innerHTML = '<div class="fs-card fs-msg"><h1>You declined to sign</h1><p>We\'ve let Alternative to Meds Center know.</p></div>';
+            watcher.disconnect();
             $("fs-jump").hidden = true;
         } catch (r) {
             showError(errorText(r));
@@ -176,7 +178,8 @@
     // "Sign now" shortcut until the signing box is on screen.
     const jump = $("fs-jump");
     jump.addEventListener("click", () => $("fs-sign").scrollIntoView({ behavior: "smooth", block: "start" }));
-    new IntersectionObserver(([entry]) => (jump.hidden = entry.isIntersecting), { threshold: 0.1 }).observe($("fs-sign"));
+    const watcher = new IntersectionObserver(([entry]) => (jump.hidden = root.hidden || entry.isIntersecting), { threshold: 0.1 });
+    watcher.observe($("fs-sign"));
 
     // --- Start ----------------------------------------------------------------
     $("fs-name").addEventListener("input", updateTyped);
