@@ -1643,3 +1643,24 @@ body[data-theme="dark"] .frappe-sign-profile-preview-slot {
 .frappe-sign-draw-canvas {
     background-color: #ffffff !important;
 }
+/* Phones: pages fit the screen (see render_page), less chrome around them. */
+@media (max-width: 640px) {
+    .frappe-sign-portal .frappe-sign-pdf-container {
+        padding: 6px;
+        min-height: 0;
+        gap: 10px;
+    }
+    .frappe-sign-portal h1 {
+        font-size: 1.6rem;
+        line-height: 1.2;
+    }
+    .frappe-sign-portal h2 {
+        font-size: 1.25rem;
+    }
+    .frappe-sign-page-label {
+        margin-bottom: 2px;
+    }
+    .frappe-sign-draw-canvas {
+        width: 100% !important;
+    }
+}

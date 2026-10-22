@@ -200,7 +200,14 @@ class FrappeSignPortal {
 
     async render_page(page_number, container) {
         const page = await this.pdf_doc.getPage(page_number);
-        const viewport = page.getViewport({ scale: this.scale });
+        // Fit the page to the screen width (phones), never larger than this.scale;
+        // draw at device pixel ratio so text stays sharp.
+        const pad = window.innerWidth <= 640 ? 14 : 36;
+        const available = Math.max((container[0] && container[0].clientWidth) || window.innerWidth, 280) - pad;
+        const fit = Math.min(this.scale, available / page.getViewport({ scale: 1 }).width);
+        const viewport = page.getViewport({ scale: fit });
+        const ratio = window.devicePixelRatio || 1;
+        const render_viewport = page.getViewport({ scale: fit * ratio });
 
         const wrapper = $(`
             <div class="frappe-sign-pdf-page-wrapper" id="frappe-sign-page-${page_number}" data-page="${page_number}">
@@ -215,8 +222,10 @@ class FrappeSignPortal {
         const canvas = wrapper.find("canvas")[0];
         const canvas_context = canvas.getContext("2d");
 
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+        canvas.width = render_viewport.width;
+        canvas.height = render_viewport.height;
+        canvas.style.width = `${viewport.width}px`;
+        canvas.style.height = `${viewport.height}px`;
 
         wrapper.find(".frappe-sign-pdf-page").css({
             width: `${viewport.width}px`,
@@ -232,7 +241,7 @@ class FrappeSignPortal {
 
         await page.render({
             canvasContext: canvas_context,
-            viewport: viewport,
+            viewport: render_viewport,
         }).promise;
     }
 
@@ -657,8 +666,12 @@ class FrappeSignPortal {
         this.ctx = this.canvas.getContext("2d");
 
         const ratio = window.devicePixelRatio || 1;
-        const css_width = 720;
-        const css_height = 260;
+        // Fit the drawing pad to the screen; a fixed 720px pad ran off phones.
+        const room = (this.canvas.parentElement && this.canvas.parentElement.clientWidth) || window.innerWidth - 48;
+        const css_width = Math.max(240, Math.min(720, room));
+        const css_height = Math.round(css_width * 0.38);
+        this.canvas.style.touchAction = "none";
+        this.canvas.style.maxWidth = "100%";
 
         this.canvas.style.width = `${css_width}px`;
         this.canvas.style.height = `${css_height}px`;
